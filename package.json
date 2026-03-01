@@ -1,7 +1,7 @@
 {
-  "name": "foco3",
+  "name": "essencial3",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
@@ -9,7 +9,13 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "date-fns": "^4.1.0",
     "expo": "~55.0.4",
+    "expo-device": "~55.0.9",
+    "expo-notifications": "~55.0.10",
+    "expo-router": "~55.0.3",
     "expo-status-bar": "~55.0.4",
     "react": "19.2.0",
     "react-native": "0.83.2"

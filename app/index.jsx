@@ -1,0 +1,306 @@
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { loadTodayPlan, saveTodayPlan } from '../lib/storage';
+import { loadReminderSettings, scheduleReminders } from '../lib/notifications';
+
+const LABELS = ['Prioridade 1', 'Prioridade 2', 'Prioridade 3'];
+const COLORS = ['#007AFF', '#34C759', '#FF9500'];
+
+export default function HojeScreen() {
+  const [priorities, setPriorities] = useState(['', '', '']);
+  const [done, setDone] = useState([false, false, false]);
+  const [saved, setSaved] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadTodayPlan().then((plan) => {
+        setPriorities(plan.priorities);
+        setDone(plan.done);
+        setSaved(plan.priorities.some((p) => p.trim().length > 0));
+      });
+    }, [])
+  );
+
+  const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
+  const todayCapitalized = today.charAt(0).toUpperCase() + today.slice(1);
+
+  function updatePriority(index, value) {
+    const updated = [...priorities];
+    updated[index] = value;
+    setPriorities(updated);
+    setSaved(false);
+  }
+
+  function toggleDone(index) {
+    const updated = [...done];
+    updated[index] = !updated[index];
+    setDone(updated);
+    saveTodayPlan({ priorities, done: updated });
+  }
+
+  async function handleSave() {
+    const hasContent = priorities.some((p) => p.trim().length > 0);
+    if (!hasContent) {
+      Alert.alert('Atenção', 'Preencha ao menos uma prioridade.');
+      return;
+    }
+
+    await saveTodayPlan({ priorities, done });
+
+    const settings = await loadReminderSettings();
+    if (settings.enabled) {
+      await scheduleReminders(priorities, settings.times);
+    }
+
+    setSaved(true);
+    Alert.alert('✅ Salvo!', 'Suas prioridades do Essencial 3 foram salvas e os lembretes agendados.');
+  }
+
+  const completedCount = done.filter(Boolean).length;
+  const totalFilled = priorities.filter((p) => p.trim().length > 0).length;
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        {/* Header do dia */}
+        <View style={styles.header}>
+          <Text style={styles.dateText}>{todayCapitalized}</Text>
+          {totalFilled > 0 && (
+            <Text style={styles.progressText}>
+              {completedCount}/{totalFilled} concluídas
+            </Text>
+          )}
+        </View>
+
+        {/* Barra de progresso */}
+        {totalFilled > 0 && (
+          <View style={styles.progressBarContainer}>
+            <View
+              style={[
+                styles.progressBar,
+                { width: `${(completedCount / totalFilled) * 100}%` },
+              ]}
+            />
+          </View>
+        )}
+
+        {/* Card de intro */}
+        <View style={styles.introCard}>
+          <Text style={styles.introEmoji}>🎯</Text>
+          <Text style={styles.introText}>
+            Quais são suas <Text style={styles.introBold}>3 prioridades</Text> de hoje?
+          </Text>
+        </View>
+
+        {/* Campos de prioridade */}
+        {priorities.map((value, i) => (
+          <View key={i} style={styles.priorityRow}>
+            <TouchableOpacity
+              style={[styles.checkbox, done[i] && styles.checkboxDone]}
+              onPress={() => toggleDone(i)}
+              disabled={!value.trim()}
+            >
+              {done[i] && <Text style={styles.checkmark}>✓</Text>}
+            </TouchableOpacity>
+
+            <View style={[styles.inputWrapper, done[i] && styles.inputWrapperDone]}>
+              <View style={[styles.colorDot, { backgroundColor: COLORS[i] }]} />
+              <TextInput
+                style={[styles.input, done[i] && styles.inputDone]}
+                placeholder={LABELS[i]}
+                placeholderTextColor="#C7C7CC"
+                value={value}
+                onChangeText={(text) => updatePriority(i, text)}
+                returnKeyType="next"
+                maxLength={80}
+                editable={!done[i]}
+              />
+            </View>
+          </View>
+        ))}
+
+        {/* Botão salvar */}
+        <TouchableOpacity
+          style={[styles.saveButton, saved && styles.saveButtonSaved]}
+          onPress={handleSave}
+        >
+          <Text style={styles.saveButtonText}>{saved ? '✓ Salvo' : 'Salvar e agendar lembretes'}</Text>
+        </TouchableOpacity>
+
+        {/* Dica */}
+        <Text style={styles.tip}>
+          Máximo de 3 prioridades. Foco total no que importa.
+        </Text>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F2F2F7',
+  },
+  scroll: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dateText: {
+    fontSize: 15,
+    color: '#3C3C43',
+    fontWeight: '500',
+  },
+  progressText: {
+    fontSize: 13,
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  progressBarContainer: {
+    height: 4,
+    backgroundColor: '#E5E5EA',
+    borderRadius: 2,
+    marginBottom: 20,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#34C759',
+    borderRadius: 2,
+  },
+  introCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  introEmoji: {
+    fontSize: 28,
+    marginRight: 12,
+  },
+  introText: {
+    fontSize: 16,
+    color: '#3C3C43',
+    flex: 1,
+    lineHeight: 22,
+  },
+  introBold: {
+    fontWeight: '700',
+    color: '#007AFF',
+  },
+  priorityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  checkbox: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: '#C7C7CC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  checkboxDone: {
+    backgroundColor: '#34C759',
+    borderColor: '#34C759',
+  },
+  checkmark: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  inputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  inputWrapperDone: {
+    opacity: 0.6,
+  },
+  colorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000000',
+    padding: 0,
+  },
+  inputDone: {
+    textDecorationLine: 'line-through',
+    color: '#8E8E93',
+  },
+  saveButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 12,
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  saveButtonSaved: {
+    backgroundColor: '#34C759',
+    shadowColor: '#34C759',
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  tip: {
+    textAlign: 'center',
+    color: '#8E8E93',
+    fontSize: 13,
+    marginTop: 20,
+    lineHeight: 18,
+  },
+});
