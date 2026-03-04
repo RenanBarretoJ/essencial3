@@ -13,17 +13,23 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.seunome.essencial3",
+      "bundleIdentifier": "com.renanbarretoj.essencial3",
       "infoPlist": {
-        "NSUserNotificationUsageDescription": "O Essencial 3 usa notificações para te lembrar das suas 3 prioridades do dia."
+        "NSUserNotificationUsageDescription": "O Essencial 3 usa notificações para te lembrar das suas 3 prioridades do dia.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png",
         "backgroundColor": "#F2F2F7"
       },
-      "permissions": ["RECEIVE_BOOT_COMPLETED", "SCHEDULE_EXACT_ALARM"]
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,14 +40,16 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#007AFF",
-          "sounds": []
+          "color": "#007AFF"
         }
       ]
     ],
     "scheme": "essencial3",
-    "experiments": {
-      "typedRoutes": true
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "19f6d92a-58b3-412b-aaff-e6a66b9143ac"
+      }
     }
   }
 }
