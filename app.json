@@ -13,10 +13,13 @@
     },
     "ios": {
       "supportsTablet": false,
-      "buildNumber": "2",
+      "buildNumber": "3",
       "bundleIdentifier": "com.renanbarretoj.essencial3",
       "infoPlist": {
         "NSUserNotificationUsageDescription": "O Essencial 3 usa notificações para te lembrar das suas 3 prioridades do dia.",
+        "NSPhotoLibraryUsageDescription": "O Essencial 3 não acessa sua biblioteca de fotos.",
+        "NSPhotoLibraryAddUsageDescription": "O Essencial 3 não salva fotos na sua biblioteca.",
+        "NSCameraUsageDescription": "O Essencial 3 não usa a câmera.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
