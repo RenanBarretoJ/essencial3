@@ -17,11 +17,15 @@ import { ptBR } from 'date-fns/locale';
 import { loadTodayPlan, saveTodayPlan, calcScore, getScoreLabel, getStreak } from '../lib/storage';
 import { loadReminderSettings } from '../lib/storage';
 import { scheduleReminders } from '../lib/notifications';
-import {
-  ExpoSpeechRecognitionModule,
-  useSpeechRecognitionEvent,
-  AVAudioSessionCategory,
-} from 'expo-speech-recognition';
+let ExpoSpeechRecognitionModule = null;
+let useSpeechRecognitionEvent = () => {};
+let AVAudioSessionCategory = {};
+try {
+  const sr = require('expo-speech-recognition');
+  ExpoSpeechRecognitionModule = sr.ExpoSpeechRecognitionModule;
+  useSpeechRecognitionEvent = sr.useSpeechRecognitionEvent;
+  AVAudioSessionCategory = sr.AVAudioSessionCategory;
+} catch {}
 
 const LABELS = ['Prioridade 1', 'Prioridade 2', 'Prioridade 3'];
 const COLORS = ['#007AFF', '#34C759', '#FF9500'];
@@ -66,6 +70,10 @@ export default function HojeScreen() {
   });
 
   async function startListening(index) {
+    if (!ExpoSpeechRecognitionModule) {
+      Alert.alert('Não disponível', 'O reconhecimento de voz funciona apenas no app instalado, não no Expo Go.');
+      return;
+    }
     const result = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
     if (!result.granted) {
       Alert.alert('Permissão necessária', 'Ative o microfone nas configurações do iPhone.');
@@ -84,7 +92,7 @@ export default function HojeScreen() {
   }
 
   function stopListening() {
-    ExpoSpeechRecognitionModule.stop();
+    if (ExpoSpeechRecognitionModule) ExpoSpeechRecognitionModule.stop();
   }
 
   const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
