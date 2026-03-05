@@ -7,17 +7,26 @@ import {
   ScrollView,
   Alert,
   Platform,
+  TextInput,
 } from 'react-native';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { loadReminderSettings, saveReminderSettings, loadTodayPlan } from '../lib/storage';
 import { scheduleReminders, cancelAllReminders, requestPermissions } from '../lib/notifications';
 
-const DEFAULT_TIMES = ['07:00', '09:00', '11:00', '13:00', '15:00', '17:00', '19:00', '21:00'];
+const PRESET_TIMES = ['07:00', '09:00', '11:00', '13:00', '15:00', '17:00', '19:00', '21:00'];
+
+function isValidTime(str) {
+  if (!/^\d{2}:\d{2}$/.test(str)) return false;
+  const [h, m] = str.split(':').map(Number);
+  return h >= 0 && h <= 23 && m >= 0 && m <= 59;
+}
 
 export default function LembretesScreen() {
   const [enabled, setEnabled] = useState(true);
   const [selectedTimes, setSelectedTimes] = useState(['09:00', '13:00', '18:00']);
+  const [customInput, setCustomInput] = useState('');
+  const [inputError, setInputError] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -40,7 +49,7 @@ export default function LembretesScreen() {
       if (!hasPermission) {
         Alert.alert(
           'Permissão necessária',
-          'Ative as notificações do Foco3 nas Configurações do iPhone.',
+          'Ative as notificações do Essencial 3 nas Configurações do iPhone.',
           [{ text: 'OK' }]
         );
         setEnabled(false);
@@ -66,16 +75,42 @@ export default function LembretesScreen() {
       }
       updated = [...selectedTimes, time].sort();
     }
-
     setSelectedTimes(updated);
     const settings = { enabled, times: updated };
     await saveReminderSettings(settings);
-
     if (enabled) {
       const plan = await loadTodayPlan();
       await scheduleReminders(plan.priorities, updated);
     }
   }
+
+  async function addCustomTime() {
+    const trimmed = customInput.trim();
+    if (!isValidTime(trimmed)) {
+      setInputError('Digite um horário válido no formato HH:MM');
+      return;
+    }
+    if (selectedTimes.includes(trimmed)) {
+      setInputError('Esse horário já está na lista.');
+      return;
+    }
+    if (selectedTimes.length >= 6) {
+      Alert.alert('Máximo 6 horários', 'Remova um horário antes de adicionar.');
+      return;
+    }
+    setInputError('');
+    const updated = [...selectedTimes, trimmed].sort();
+    setSelectedTimes(updated);
+    setCustomInput('');
+    const settings = { enabled, times: updated };
+    await saveReminderSettings(settings);
+    if (enabled) {
+      const plan = await loadTodayPlan();
+      await scheduleReminders(plan.priorities, updated);
+    }
+  }
+
+  const allTimes = [...new Set([...PRESET_TIMES, ...selectedTimes])].sort();
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
@@ -103,7 +138,7 @@ export default function LembretesScreen() {
       </Text>
 
       <View style={styles.timesGrid}>
-        {DEFAULT_TIMES.map((time) => {
+        {allTimes.map((time) => {
           const active = selectedTimes.includes(time);
           return (
             <TouchableOpacity
@@ -120,11 +155,36 @@ export default function LembretesScreen() {
         })}
       </View>
 
-      {/* Preview do que será enviado */}
+      {/* Horário customizado */}
+      <Text style={styles.sectionTitle}>Adicionar horário personalizado</Text>
+      <View style={styles.customRow}>
+        <TextInput
+          style={[styles.customInput, inputError ? styles.customInputError : null]}
+          placeholder="Ex: 08:30"
+          placeholderTextColor="#C7C7CC"
+          value={customInput}
+          onChangeText={(t) => { setCustomInput(t); setInputError(''); }}
+          keyboardType="numbers-and-punctuation"
+          maxLength={5}
+          returnKeyType="done"
+          onSubmitEditing={addCustomTime}
+          editable={enabled}
+        />
+        <TouchableOpacity
+          style={[styles.addButton, !enabled && styles.addButtonDisabled]}
+          onPress={addCustomTime}
+          disabled={!enabled}
+        >
+          <Text style={styles.addButtonText}>+ Adicionar</Text>
+        </TouchableOpacity>
+      </View>
+      {inputError ? <Text style={styles.errorText}>{inputError}</Text> : null}
+
+      {/* Preview */}
       <Text style={styles.sectionTitle}>Como será a notificação</Text>
       <View style={styles.previewCard}>
         <View style={styles.previewHeader}>
-          <Text style={styles.previewApp}>Foco3</Text>
+          <Text style={styles.previewApp}>Essencial 3</Text>
           <Text style={styles.previewTime}>agora</Text>
         </View>
         <Text style={styles.previewTitle}>🎯 Foco do dia</Text>
@@ -194,7 +254,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    marginBottom: 32,
+    marginBottom: 28,
   },
   timeChip: {
     backgroundColor: '#FFFFFF',
@@ -223,6 +283,46 @@ const styles = StyleSheet.create({
   },
   timeChipTextActive: {
     color: '#FFFFFF',
+  },
+  customRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  customInput: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    borderWidth: 2,
+    borderColor: '#E5E5EA',
+    color: '#000000',
+  },
+  customInputError: {
+    borderColor: '#FF3B30',
+  },
+  addButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    justifyContent: 'center',
+  },
+  addButtonDisabled: {
+    opacity: 0.4,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  errorText: {
+    color: '#FF3B30',
+    fontSize: 12,
+    marginBottom: 16,
   },
   previewCard: {
     backgroundColor: '#FFFFFF',

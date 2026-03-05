@@ -42,6 +42,13 @@
           "icon": "./assets/icon.png",
           "color": "#007AFF"
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "O Essencial 3 usa o microfone para você ditar suas prioridades por voz.",
+          "speechRecognitionPermission": "O Essencial 3 usa reconhecimento de voz para converter suas prioridades faladas em texto."
+        }
       ]
     ],
     "scheme": "essencial3",

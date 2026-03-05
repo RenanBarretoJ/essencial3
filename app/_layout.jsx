@@ -17,14 +17,8 @@ export default function RootLayout() {
           backgroundColor: '#F2F2F7',
           borderTopColor: '#C6C6C8',
         },
-        headerStyle: {
-          backgroundColor: '#F2F2F7',
-        },
-        headerTitleStyle: {
-          fontWeight: '700',
-          fontSize: 17,
-          color: '#000000',
-        },
+        headerStyle: { backgroundColor: '#F2F2F7' },
+        headerTitleStyle: { fontWeight: '700', fontSize: 17, color: '#000000' },
         headerShadowVisible: false,
       }}
     >
@@ -35,6 +29,16 @@ export default function RootLayout() {
           tabBarLabel: 'Hoje',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="checkmark-circle-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="dashboard"
+        options={{
+          title: 'Dashboard',
+          tabBarLabel: 'Dashboard',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="bar-chart-outline" color={color} size={size} />
           ),
         }}
       />
